@@ -1,4 +1,5 @@
 %% Composite Laminate Stiffness & Compliance Analysis
+% Angel Rocha: San Jose State University
 
 %Given play material properties & layup configuration (number of plies &
 %ply orientation angle (theta)
@@ -12,7 +13,7 @@ clear all; close all; clc;
 lam = [0 90 0 90]*pi/180; %Cross Ply
 lam = [53 -53 53 -53]*pi/180; %Angle Ply
 lam1 = [45 -45 -45 45]*pi/180; %Symmetric Angle Ply
-lam = [60 -60]*pi/180; %example
+%lam = [60 -60]*pi/180; %example
 %Ply Properties
 mat = [25.8 2.48 0.295 0.783 0.00492];
      %[E1 E2 v12 G12 t_ply]
@@ -33,12 +34,13 @@ NMmechanical=[p*q/2;  p*q; 0;  %Nx Ny Nxy forces
 [Ts,Te,A,B,D,Q,QB,SB,h] = ABDmatrices(mat, lam1);
 [stiffness, compliance] = StiffComp(A,B,D);
 [alphaOff,TstrainOn,TstressOn,TstrainOff,TstressOff]=ThermalEffects(lam1,Te,alpha1,alpha2,dT,Q,SB);
-[NMthermal,alpha] = ThermalStress(lam1,dT,h,QB,alpha1,alpha2,alphaOff);
+[NMthermal] = ThermalStress(lam1,dT,h,QB,alpha1,alpha2,alphaOff);
 
 
 Load=NMmechanical-NMthermal;
 % Laminate Strains
-lam_strain = compliance*Load;
+
+lam_strain = compliance*Load
 %strain = [epsilonx epsilony gammaxy kx ky kxy]
 
 %% Stress & Strain of Plys
@@ -184,18 +186,20 @@ for a=1:1:size(lam,2)
     TstressOff(:,:,a)=SBi(:,:,a)*alphaOff(:,1,a)*dT;
 end
 end
-function [NMthermal,alpha] = ThermalStress(lam,dT,h,QB,alpha1,alpha2,alphaOff)
+function [NMthermal] = ThermalStress(lam,dT,h,QB,alpha1,alpha2,alphaOff)
+Nthermal=zeros(3,1);
+Mthermal=zeros(3,1);
 for a=1:1:size(lam,2)
-    Nthermal=zeros(3,1);
-    Mthermal=zeros(3,1);
     c = cos(lam(a));
     s = sin(lam(a));
-    alphaxy=-2*c*s*alpha1+2*c*s*alpha2
-    alpha=[alphaOff(1,1,a);alphaOff(2,1,a);alphaxy];
-    %Off Axis Forces & Moments
-    z=h(a+1)-h(a)
-    Nthermal(:,:)=Nthermal(:,:)+dT*(h(a+1)-h(a))*QB(a).*alpha;
-    Mthermal(:,:)=Mthermal(:,:)+dT*(((h(a+1))^2-(h(a))^2)/2)*QB(a)*alpha;
+    alphaxy=-2*c*s*alpha1+2*c*s*alpha2;
+    alpha=[alphaOff(1,1,a);
+           alphaOff(2,1,a);
+           alphaxy];
+    Qmatrix=(QB(:,:,a));
+    %Off axis Forc`es & Moments
+    Nthermal=Nthermal+dT*(h(a+1)-h(a))*Qmatrix*alpha;
+    Mthermal=Mthermal+dT*(((h(a+1))^2-(h(a))^2)/2)*Qmatrix*alpha;
     NMthermal=[Nthermal;Mthermal];
 end
 end
